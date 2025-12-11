@@ -59,7 +59,7 @@ kestra-config.yml
 *.tsbuildinfo
 next-env.d.ts
 
-#unneeded_file_or_directory
+#file_or_directory
 check-secrets.sh
 kestra-test.sh
 SECURITY.md
@@ -72,3 +72,12 @@ KESTRA_SETUP_FIXED.md
 FIX_ANON_KEY.md
 SETUP_FIXES.md
 API_DOCUMENTATION.md
+DEPLOYMENT_CHECKLIST.md
+FIX_SUMMARY.md
+IMPLEMENTATION_NOTES.md
+ISSUES_FIXED.md
+QUICK_START.md
+SETUP_CONSOLIDATED.md
+STORAGE_BUCKET_SETUP.md
+SUPABASE_AUTH_SETUP.md
+SUPABASE_TABLES.sql
