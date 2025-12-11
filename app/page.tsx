@@ -280,6 +280,7 @@ I built several web apps and I am good at coding.`;
           console.log('📊 Analysis status from Supabase:', { 
             status: analysis.status, 
             toxicity: analysis.toxicityScore, 
+            ats_score: analysis.atsScore,
             fit: analysis.fitScore,
             redFlags: analysis.redFlags?.length || 0,
             skills: analysis.missingSkills?.length || 0
@@ -320,6 +321,7 @@ I built several web apps and I am good at coding.`;
               toxicityScore: Number(analysis.toxicityScore) || 0,
               redFlags: safeRedFlags,
               fitScore: Number(analysis.fitScore) || 0,
+              atsScore: Number(analysis.atsScore) || 0,
               summary: String(analysis.summary || ''),
               missingSkills: safeSkills,
               interviewQuestions: safeQuestions,
@@ -735,7 +737,7 @@ I built several web apps and I am good at coding.`;
                <Cpu className="w-16 h-16 text-emerald-400 animate-pulse" />
                <div className="absolute inset-0 bg-emerald-500/30 blur-xl animate-pulse" />
              </div>
-             <h2 className="text-2xl font-bold mb-8">Analyzing with Gemini & Kestra...</h2>
+             <h2 className="text-2xl font-bold mb-8">Analyzing with GROQ & Kestra...</h2>
              <div className="space-y-4 text-left">
               {workflowSteps.map((step, index) => (
                 <div key={step.id} className={`flex items-center gap-4 p-4 rounded-xl border ${index === workflowStep ? 'bg-slate-800 border-emerald-500/50' : 'border-transparent opacity-50'}`}>
@@ -771,6 +773,16 @@ I built several web apps and I am good at coding.`;
                       </div>
                       <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
                         <div className="h-full bg-emerald-500" style={{width: `${analysisData.fitScore ?? 0}%`}} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
+                        <span>ATS Score</span>
+                        <span>{analysisData.atsScore ?? 0}%</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                        <div className="h-full bg-emerald-500" style={{width: `${analysisData.atsScore ?? 0}%`}} />
                       </div>
                     </div>
 

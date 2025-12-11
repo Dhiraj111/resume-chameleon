@@ -11,6 +11,7 @@ export type Analysis = {
   toxicityScore?: number
   redFlags?: Array<{ text: string; meaning?: string }>
   fitScore?: number
+  atsScore?: number
   summary?: string
   missingSkills?: string[]
   interviewQuestions?: Array<{ question: string; tip?: string }>
@@ -70,6 +71,11 @@ export function mapAnalysis(row: any): Analysis {
     return typeof val === 'number' ? val : parseInt(val, 10) || 0;
   })();
 
+  const atsScore = (() => {
+    const val = row.ats_score ?? row.atsScore ?? 0;
+    return typeof val === 'number' ? val : parseInt(val, 10) || 0;
+  })();
+
   const fitScore = (() => {
     const val = row.fit_score ?? row.fitScore ?? 0;
     return typeof val === 'number' ? val : parseInt(val, 10) || 0;
@@ -111,6 +117,7 @@ export function mapAnalysis(row: any): Analysis {
     toxicityScore,
     redFlags,
     fitScore,
+    atsScore,
     summary,
     missingSkills,
     interviewQuestions,
