@@ -8,12 +8,13 @@ CREATE TABLE analyses (
   resume_text TEXT NOT NULL,
   resume_file_path VARCHAR(500),
   
-  -- Analysis results (from Gemini)
+  -- Analysis results (from groq)
   toxicity_score INTEGER,
   red_flags JSONB,
   fit_score INTEGER,
   summary TEXT,
   missing_skills TEXT[],
+  ai_response JSONB
   
   -- Interview prep (optional)
   interview_questions JSONB,
@@ -30,7 +31,7 @@ CREATE TABLE analyses (
 -- Enable RLS
 ALTER TABLE analyses ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
+-- RLS Policies for authenticated users
 CREATE POLICY "Users can view their own analyses"
   ON analyses FOR SELECT USING (auth.uid() = user_id);
 
@@ -42,6 +43,16 @@ CREATE POLICY "Users can update their own analyses"
 
 CREATE POLICY "Users can delete their own analyses"
   ON analyses FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS Policy for service role (Kestra backend updates)
+CREATE POLICY "Service role can update all analyses"
+  ON analyses FOR UPDATE 
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role can select all analyses"
+  ON analyses FOR SELECT 
+  USING (auth.role() = 'service_role');
 
 -- Create index for faster queries
 CREATE INDEX analyses_user_id_idx ON analyses(user_id);
