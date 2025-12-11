@@ -7,11 +7,11 @@ import { createClient } from '@supabase/supabase-js';
  * Flow:
  * 1. Validate inputs (job description, resume file or text, user auth)
  * 2. Upload resume PDF to Supabase Storage (if provided)
- * 3. Extract text from PDF via Kestra (if file provided)
+ * 3. Extract text from PDF and groq analysis via Kestra  (if file provided)
  * 4. Store job description + resume text in analyses table with status='processing'
  * 5. Return analysisId to frontend for polling
  * 
- * NOTE: Gemini analysis happens in /api/analyze-poll when text is extracted
+ * NOTE: groq analysis happens in /api/analyze-poll when text is extracted
  * 
  * Request body:
  * {
@@ -62,6 +62,10 @@ export default async function handler(
     return res.status(401).json({ error: 'User ID is required. User must be logged in.' });
   }
 
+  if (!userEmail) {
+    return res.status(400).json({ error: 'User email is required.' });
+  }
+
   try {
     // ========== SUPABASE SETUP ==========
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -74,6 +78,16 @@ export default async function handler(
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
+    // ========== STEP 0: ENSURE USER PROFILE EXISTS ==========
+    // Using the service role key bypasses RLS, so we can safely upsert the profile.
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .upsert({ id: userId, email: userEmail }, { onConflict: 'id' });
+
+    if (profileError) {
+      throw new Error(`Failed to upsert user profile: ${profileError.message}`);
+    }
 
     // ========== STEP 1: HANDLE RESUME (FILE OR TEXT) ==========
     let finalResumeText = resumeText || '';
@@ -209,9 +223,44 @@ export default async function handler(
     const analysisId = analysisRecord?.id;
     console.log('✅ Record created:', analysisId);
 
-    // ========== STEP 3: RETURN ANALYSIS ID ==========
-    // Kestra will handle all processing and save results to analyses table
-    // Frontend just polls Supabase to fetch the saved results
+    // ========== STEP 3: TRIGGER KESTRA WORKFLOW ==========
+    const kestraApiUrl = process.env.KESTRA_API_URL || 'http://localhost:8080';
+    const kestraToken = process.env.KESTRA_API_TOKEN;
+
+    if (kestraToken && kestraToken !== 'temp_placeholder_for_now' && kestraToken !== 'your-token') {
+      try {
+        console.log('🚀 Triggering Kestra workflow...');
+        const kestraResponse = await fetch(`${kestraApiUrl}/api/v1/executions/resume/analyze-resume`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${kestraToken}`,
+          },
+          body: JSON.stringify({
+            inputs: {
+              analysis_id: analysisId,
+            },
+          }),
+        });
+
+        if (!kestraResponse.ok) {
+          const errorText = await kestraResponse.text();
+          console.error('❌ Kestra trigger failed:', kestraResponse.status, errorText);
+          throw new Error(`Kestra workflow trigger failed: ${kestraResponse.status}`);
+        }
+
+        const kestraData = await kestraResponse.json();
+        console.log('✅ Kestra workflow triggered:', kestraData.id);
+      } catch (kestraError) {
+        console.error('⚠️ Kestra trigger error:', kestraError);
+        // Don't fail the whole request - frontend can still poll
+      }
+    } else {
+      console.log('⚠️ Kestra not configured (missing or placeholder token), skipping workflow trigger');
+    }
+
+    // ========== STEP 4: RETURN ANALYSIS ID ==========
+    // Frontend polls Supabase to fetch results once Kestra completes
     console.log('🎉 SUCCESS: Record created, Kestra will process it');
     return res.status(200).json({
       success: true,
