@@ -43,7 +43,7 @@ const base64Content = await new Promise<string>((resolve, reject) => {
 ### Step 1: Create/Fix the Database Table
 
 1. Go to your **Supabase Dashboard**: https://app.supabase.com
-2. Select your project: `plptlitwnhiajcuspzxi`
+2. Select your project: ``
 3. Go to **SQL Editor** (left sidebar)
 4. Click **+ New Query**
 5. **Copy and paste this entire SQL script**:
