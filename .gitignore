@@ -58,3 +58,15 @@ kestra-config.yml
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#unneeded_file_or_directory
+check-secrets.sh
+kestra-test.sh
+SECURITY.md
+KESTRA_FIX_SUMMARY.md
+KESTRA_400_FIX_SENIOR_DEV.md
+FIX_KESTRA_RLS.md
+QUICK_FIX_RLS.md
+KESTRA_FIX_QUICKSTART.md
+KESTRA_SETUP_FIXED.md
+FIX_ANON_KEY.md
