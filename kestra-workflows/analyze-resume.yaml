@@ -1,0 +1,128 @@
+id: my-webhook-flow
+namespace: dev.local
+
+tasks:
+  # ---------------------------------------------------------
+  # STEP 1: CONDITIONAL PROCESSING (Download & OCR if needed)
+  # ---------------------------------------------------------
+  - id: process_file_if_needed
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ trigger.body.record.resume_text is empty }}"
+    then:
+      - id: download_resume
+        type: io.kestra.plugin.core.http.Download
+        # 👇 REPLACE with your actual Supabase URL
+        uri: "https://{{ secret('PROJECT_KEY') }}.supabase.co/storage/v1/object/public/resumes/{{ trigger.body.record.resume_file_path }}"
+
+      - id: ocr_resume
+        type: io.kestra.plugin.scripts.python.Script
+        containerImage: python:3.11-slim
+        beforeCommands:
+          - apt-get update && apt-get install -y tesseract-ocr poppler-utils
+          - pip install pytesseract pdf2image kestra
+        inputFiles:
+          resume.pdf: "{{ outputs.download_resume.uri }}"
+        script: |
+          import pytesseract
+          from pdf2image import convert_from_path
+          from kestra import Kestra
+          try:
+              images = convert_from_path('resume.pdf')
+          except Exception:
+              Kestra.outputs({'final_text': ""})
+              exit(0)
+          full_text = ""
+          for image in images:
+              full_text += pytesseract.image_to_string(image) + "\n"
+          clean_text = " ".join(full_text.split())
+          Kestra.outputs({'final_text': clean_text})
+
+  # ---------------------------------------------------------
+  # STEP 2: AI ANALYSIS (Groq - Llama 3 70B)
+  # ---------------------------------------------------------
+  - id: analyze_resume
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://api.groq.com/openai/v1/chat/completions"
+    method: POST
+    contentType: application/json
+    headers:
+      # 👇 REPLACE with your Groq API Key (starts with 'gsk_...')
+      Authorization: "Bearer {{ secret('GROQ_API_KEY') }}"
+
+    # We use 'json_object' mode which Groq supports perfectly
+    body: |
+      {
+        "model": "llama-3.3-70b-versatile",
+        "response_format": { "type": "json_object" },
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an expert HR Recruiter, Career Coach, and Safety Officer. Output strictly valid JSON."
+
+
+          },
+          {
+            "role": "user",
+            "content": {{ ("You are an expert HR Recruiter, Career Coach, and Safety Officer. Analyze the following Resume against the Job Description.\n\nJOB DESCRIPTION:\n" ~ trigger.body.record.job_description ~ "\n\nRESUME:\n" ~ (outputs.ocr_resume.vars.final_text ?? trigger.body.record.resume_text) ~ "\n\nAnalyze the fit deeply.\n\nOutput strictly valid JSON (no markdown formatting) with this schema:\n{ \"fit_score\": number (0-100), \"ats_score\": number (0-100), \"toxicity_score\": number (0-10), \"red_flags\": [string], \"missing_skills\": [string], \"summary\": string, \"interview_questions\": [string] }\n\n**CRITICAL INSTRUCTIONS FOR THE \"summary\" FIELD:**\nThe \"summary\" must be a comprehensive, 5-6 paragraph \"Candidate Performance Report.\" It should be written directly to the candidate and must include the following distinct sections (formatted with \\n\\n for new paragraphs):\n1. **Executive Fit Overview:** High-level assessment of why they are or aren't a match.\n2. **Experience Deep Dive:** A detailed look at how their past roles compare to the JD's requirements.\n3. **Skills Gap Analysis:** Not just listing missing skills, but explaining *why* those skills are critical for this specific role.\n4. **Formatting & Presentation:** Critique the clarity, impact, and structure of the resume text itself.\n5. **Strategic Advice:** Actionable steps the candidate should take to improve their chances (e.g., \"Rewrite your bullet points to focus on X result\").") | json }}
+          }
+        ]
+      }
+
+
+ # ---------------------------------------------------------
+  # STEP 3: EXTRACT & CLEAN JSON
+  # We use json(...) to turn the text string into an object we can read.
+  # ---------------------------------------------------------
+  - id: parse_ai_response
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      # 👇 THE FIX IS HERE: json(...)
+      clean_json: "{{ json(outputs.analyze_resume.body).choices[0].message.content }}"
+
+  # ---------------------------------------------------------
+  # STEP 4: LOG FINAL RESULT
+  # ---------------------------------------------------------
+  - id: log_final_result
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      ✅ ANALYSIS COMPLETE
+      ====================
+      {{ json(outputs.analyze_resume.body).choices[0].message.content }}
+
+  # ---------------------------------------------------------
+  # STEP 5: SAVE TO SUPABASE
+  # We parse the AI JSON and map it to specific table columns
+  # ---------------------------------------------------------
+  - id: update_supabase
+    type: io.kestra.plugin.core.http.Request
+    # 👇 Updates the specific record ID that triggered the webhook
+    uri: "https://{{ secret('PROJECT_KEY') }}.supabase.co/rest/v1/analyses?id=eq.{{ trigger.body.record.id }}"
+    method: PATCH
+    contentType: application/json
+    headers:
+      # 👇 CRITICAL: Use your Service Role Key (starts with 'eyJ...')
+      apikey: "{{ secret('SERVICE_ROLE_KEY') }}"
+      Authorization: "Bearer {{ secret('SERVICE_ROLE_KEY') }}"
+      Content-Type: "application/json"
+      Prefer: "return=minimal"
+    
+    # 👇 LOGIC: Parse the text string into an object, then map to columns
+    body: |
+      {% set raw_string = json(outputs.analyze_resume.body).choices[0].message.content %}
+      {% set data = json(raw_string) %}
+      {
+        "status": "completed",
+        "fit_score": {{ data.fit_score }},
+        "toxicity_score": {{ data.toxicity_score }},
+        "ats_score": {{ data.ats_score }},
+        "red_flags": {{ data.red_flags | json }},
+        "missing_skills": {{ data.missing_skills | json }},
+        "interview_questions": {{ data.interview_questions | json }},
+        "ai_response": {{ raw_string }}
+      }
+
+      
+triggers:
+  - id: my_webhook
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: "secret-key-123"
