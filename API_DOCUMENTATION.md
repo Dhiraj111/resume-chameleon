@@ -7,7 +7,7 @@ The `/api/analyze` endpoint is the **single entry point** for complete resume an
 1. ✅ Resume file upload (if PDF)
 2. ✅ PDF text extraction via Kestra
 3. ✅ Save to database
-4. ✅ Gemini analysis
+4. ✅ Groq analyses
 5. ✅ Results storage
 
 ---
@@ -306,7 +306,7 @@ try {
   // 1. Validate
   // 2. Process resume
   // 3. Save to DB
-  // 4. Call Gemini
+  // 4. Call groq
   // 5. Update with results
   // 6. Return success
 } catch (error) {
@@ -356,7 +356,7 @@ async function analyzeWithRetry(payload, maxRetries = 3) {
 | File size limit | 10 MB | PDF size max |
 | Job description max | 10,000 chars | Prevent abuse |
 | Resume text max | 50,000 chars | Prevent abuse |
-| Gemini API timeout | 30 seconds | Built-in by Google |
+| Groq API timeout | 30 seconds |
 
 ---
 
@@ -407,7 +407,7 @@ Benchmarks on typical hardware:
 | Upload PDF (1MB) | 200ms |
 | Kestra extraction | 2-4 seconds |
 | Save to DB | 50ms |
-| Gemini API call | 3-5 seconds |
+| groq API call | 3-5 seconds |
 | Total (resume text) | ~8 seconds |
 | Total (PDF upload) | ~15 seconds |
 
