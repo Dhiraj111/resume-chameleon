@@ -3,16 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Spline from '@splinetool/react-spline';
-import { 
-  Briefcase, 
-  FileText, 
-  AlertTriangle, 
-  CheckCircle, 
-  ArrowRight, 
-  Zap, 
-  ShieldAlert, 
-  Cpu, 
-  Loader, 
+import {
+  Briefcase,
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  ArrowRight,
+  Zap,
+  ShieldAlert,
+  Cpu,
+  Loader,
   RefreshCcw,
   Copy,
   Sparkles,
@@ -65,13 +65,13 @@ const App = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [resumeText, setResumeText] = useState('');
   const [workflowStep, setWorkflowStep] = useState(0);
-  
+
   // PDF Upload States
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [extractedResumeText, setExtractedResumeText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
-  
+
   // Gemini Data States
   const [analysisData, setAnalysisData] = useState<Analysis | null>(null);
   const [interviewPrep, setInterviewPrep] = useState<any>(null);
@@ -139,14 +139,14 @@ I built several web apps and I am good at coding.`;
   const callGemini = async (prompt: string) => {
     try {
       const response = await fetch('/api/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
-        }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      }
       );
-      
+
       if (!response.ok) throw new Error('API call failed');
-      
+
       const data = await response.json();
       return typeof data === 'string' ? JSON.parse(data) : data;
     } catch (error) {
@@ -226,7 +226,7 @@ I built several web apps and I am good at coding.`;
 
       const uploadResult = await uploadResponse.json();
       console.log('Upload result:', uploadResult);
-      
+
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Upload returned unsuccessful');
       }
@@ -244,7 +244,7 @@ I built several web apps and I am good at coding.`;
 
       while (!analysisComplete && supabaseAttempts < maxSupabaseAttempts) {
         supabaseAttempts++;
-        
+
         // Wait 1 second before each attempt
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -264,7 +264,7 @@ I built several web apps and I am good at coding.`;
           }
 
           const supabasePayload = await supabaseResponse.json();
-          
+
           if (!supabasePayload.success) {
             console.log(`⏳ Supabase error: ${supabasePayload.error}... (attempt ${supabaseAttempts}/${maxSupabaseAttempts})`);
             continue;
@@ -276,10 +276,10 @@ I built several web apps and I am good at coding.`;
           }
 
           const analysis = mapAnalysis(supabasePayload.analysis);
-          
-          console.log('📊 Analysis status from Supabase:', { 
-            status: analysis.status, 
-            toxicity: analysis.toxicityScore, 
+
+          console.log('📊 Analysis status from Supabase:', {
+            status: analysis.status,
+            toxicity: analysis.toxicityScore,
             ats_score: analysis.atsScore,
             fit: analysis.fitScore,
             redFlags: analysis.redFlags?.length || 0,
@@ -288,35 +288,35 @@ I built several web apps and I am good at coding.`;
 
           // Wait for Kestra to mark status as 'completed' (or 'analysis_complete')
           const isComplete = analysis.status === 'completed' || analysis.status === 'analysis_complete';
-          
+
           if (isComplete) {
             console.log('✅ Kestra completed! Status is "completed" - displaying results');
-            
+
             // Ensure all arrays are properly formatted
-            const safeRedFlags = Array.isArray(analysis.redFlags) 
+            const safeRedFlags = Array.isArray(analysis.redFlags)
               ? analysis.redFlags.filter(f => f && typeof f === 'object').map(f => ({
-                  text: String(f.text || ''),
-                  meaning: String(f.meaning || '')
-                }))
+                text: String(f.text || ''),
+                meaning: String(f.meaning || '')
+              }))
               : [];
-            
+
             const safeSkills = Array.isArray(analysis.missingSkills)
               ? analysis.missingSkills.filter(s => s).map(s => String(s))
               : [];
-            
+
             const safeQuestions = Array.isArray(analysis.interviewQuestions)
               ? analysis.interviewQuestions.filter(q => q).map(q => {
-                  // Handle both string and object formats
-                  if (typeof q === 'string') {
-                    return { question: q, tip: 'Share a concise, outcome-focused answer.' };
-                  }
-                  return {
-                    question: String(q.question || q),
-                    tip: String(q.tip || 'Share a concise, outcome-focused answer.')
-                  };
-                })
+                // Handle both string and object formats
+                if (typeof q === 'string') {
+                  return { question: q, tip: 'Share a concise, outcome-focused answer.' };
+                }
+                return {
+                  question: String(q.question || q),
+                  tip: String(q.tip || 'Share a concise, outcome-focused answer.')
+                };
+              })
               : [];
-            
+
             setAnalysisData({
               toxicityScore: Number(analysis.toxicityScore) || 0,
               redFlags: safeRedFlags,
@@ -345,7 +345,7 @@ I built several web apps and I am good at coding.`;
       }
 
       setResumeFile(null);
-      
+
       setTimeout(() => {
         clearInterval(interval);
         setAppState('results');
@@ -406,7 +406,7 @@ I built several web apps and I am good at coding.`;
     try {
       // Create user folder path: user_id/filename.pdf
       const fileName = `${user.id}/${Date.now()}-${resumeFile.name}`;
-      
+
       // Upload to Supabase Storage
       const { data, error } = await supabase!.storage
         .from('resumes')
@@ -427,14 +427,14 @@ I built several web apps and I am good at coding.`;
       });
 
       if (!kestraResponse.ok) throw new Error('Kestra job failed');
-      
+
       const kestraData = await kestraResponse.json();
       console.log('Kestra job started:', kestraData.job_id);
 
       // Poll for extraction completion (check every 2 seconds)
       let completed = false;
       let attempts = 0;
-      
+
       while (!completed && attempts < 60) {
         attempts++;
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -509,7 +509,7 @@ I built several web apps and I am good at coding.`;
     }
 
     console.log('🔐 Starting authentication...', { mode: authMode });
-    
+
     // Get form data
     const formData = new FormData(e.target as HTMLFormElement);
     const email = formData.get('email') as string;
@@ -525,7 +525,7 @@ I built several web apps and I am good at coding.`;
           console.error('Signup error:', error);
           throw error;
         }
-        
+
         console.log('Signup successful:', data);
         alert('Check your email for the confirmation link!');
         setIsLoginModalOpen(false);
@@ -538,7 +538,7 @@ I built several web apps and I am good at coding.`;
           console.error('Sign in error:', error);
           throw error;
         }
-        
+
         console.log('Sign in successful:', data);
         setIsLoginModalOpen(false);
       }
@@ -546,7 +546,7 @@ I built several web apps and I am good at coding.`;
       console.error('❌ Auth error details:', error);
       console.error('Error status:', error.status);
       console.error('Error message:', error.message);
-      
+
       // Provide more helpful error messages
       if (error.message?.includes('Invalid login credentials')) {
         setAuthError('Invalid email or password. Please try again.');
@@ -596,391 +596,427 @@ I built several web apps and I am good at coding.`;
 
       {/* Content wrapper with higher z-index - pointer-events-none on container, auto on children */}
       <div className="relative z-10 pointer-events-none">
-      {/* Navigation */}
-      <nav className="border-b border-slate-800 bg-slate-950/30 backdrop-blur-xl sticky top-0 z-40 pointer-events-auto">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAppState('landing')}>
-            <div className="w-8 h-8 bg-gradient-to-tr from-emerald-400 to-cyan-500 rounded-lg flex items-center justify-center">
-              <RefreshCcw className="text-slate-950 w-5 h-5" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">Resume<span className="text-emerald-400">Chameleon</span></span>
-          </div>
-          <div className="hidden md:flex gap-6 text-sm font-medium text-slate-400">
-            <span className="hover:text-emerald-400 cursor-pointer transition-colors">How it Works</span>
-            <span className="hover:text-emerald-400 cursor-pointer transition-colors">Kestra Agents</span>
-          </div>
-          
-          {/* Auth Button Logic */}
-          {user ? (
-             <div className="flex items-center gap-4">
-               <div className="hidden sm:flex flex-col text-right">
-                 <span className="text-xs font-bold text-white truncate max-w-[120px]">{user.email}</span>
-                 <span className="text-[10px] text-emerald-400">Pro Plan</span>
-               </div>
-               <button 
-                 onClick={handleLogout}
-                 className="w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition-all border border-slate-700"
-                 title="Logout"
-               >
-                 <LogOut className="w-4 h-4" />
-               </button>
-             </div>
-          ) : (
-            <button 
-              onClick={() => setIsLoginModalOpen(true)}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-all"
-            >
-              Login
-            </button>
-          )}
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-6 py-12 pointer-events-auto">
-        {appState === 'landing' && (
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-6">
-                <Zap className="w-3 h-3" /> POWERED BY KESTRA AI AGENTS
+        {/* Navigation */}
+        <nav className="border-b border-slate-800 bg-slate-950/30 backdrop-blur-xl sticky top-0 z-40 pointer-events-auto">
+          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAppState('landing')}>
+              <div className="w-8 h-8 bg-gradient-to-tr from-emerald-400 to-cyan-500 rounded-lg flex items-center justify-center">
+                <RefreshCcw className="text-slate-950 w-5 h-5" />
               </div>
-              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 drop-shadow-2xl">
-                Don't just rewrite your resume. <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Dodge the toxic jobs.</span>
-              </h1>
-              <p className="text-lg text-slate-300 mb-8 leading-relaxed drop-shadow-lg">
-                Resume Chameleon analyzes Job Descriptions for red flags and tailors your resume 
-                to perfectly match the safe, high-quality roles you actually want.
-              </p>
+              <span className="font-bold text-xl tracking-tight">Resume<span className="text-emerald-400">Chameleon</span></span>
+            </div>
+            <div className="hidden md:flex gap-6 text-sm font-medium text-slate-400">
+              <span className="hover:text-emerald-400 cursor-pointer transition-colors">How it Works</span>
+              <span className="hover:text-emerald-400 cursor-pointer transition-colors">Kestra Agents</span>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-1 shadow-2xl">
-                <div className="bg-slate-900/80 backdrop-blur-md rounded-xl p-6 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-rose-400">
-                      <Briefcase className="w-4 h-4" /> Job Description
-                    </label>
-                  </div>
-                  <textarea 
-                    className="w-full bg-slate-950/50 backdrop-blur-sm border border-slate-800/50 rounded-lg px-4 py-3 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 text-slate-200 placeholder-slate-500 resize-none flex-grow h-48 text-sm transition-all"
-                    placeholder={`e.g. "We are looking for a rockstar developer..."`}
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                  />
+            {/* Auth Button Logic */}
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-xs font-bold text-white truncate max-w-[120px]">{user.email}</span>
+                  <span className="text-[10px] text-emerald-400">Pro Plan</span>
                 </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition-all border border-slate-700"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
+                className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-all"
+              >
+                Login
+              </button>
+            )}
+          </div>
+        </nav>
+
+        <main className="max-w-7xl mx-auto px-6 py-12 pointer-events-auto">
+          {appState === 'landing' && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="text-center max-w-3xl mx-auto mb-16">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-6">
+                  <Zap className="w-3 h-3" /> POWERED BY KESTRA AI AGENTS
+                </div>
+                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 drop-shadow-2xl">
+                  Don't just rewrite your resume. <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Dodge the toxic jobs.</span>
+                </h1>
+                <p className="text-lg text-slate-300 mb-8 leading-relaxed drop-shadow-lg">
+                  Resume Chameleon analyzes Job Descriptions for red flags and tailors your resume
+                  to perfectly match the safe, high-quality roles you actually want.
+                </p>
               </div>
 
-              <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-1 shadow-2xl">
-                <div className="bg-slate-900/80 backdrop-blur-md rounded-xl p-6 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-cyan-400">
-                      <FileText className="w-4 h-4" /> Your Resume
-                    </label>
+              <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-1 shadow-2xl">
+                  <div className="bg-slate-900/80 backdrop-blur-md rounded-xl p-6 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-rose-400">
+                        <Briefcase className="w-4 h-4" /> Job Description
+                      </label>
+                    </div>
+                    <textarea
+                      className="w-full bg-slate-950/50 backdrop-blur-sm border border-slate-800/50 rounded-lg px-4 py-3 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 text-slate-200 placeholder-slate-500 resize-none flex-grow h-48 text-sm transition-all"
+                      placeholder={`e.g. "We are looking for a rockstar developer..."`}
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                    />
                   </div>
+                </div>
 
-                  {/* Text Input */}
-                  <textarea 
-                    className="w-full bg-slate-950/50 backdrop-blur-sm border border-slate-800/50 rounded-lg px-4 py-3 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 text-slate-200 placeholder-slate-500 resize-none flex-grow h-48 text-sm transition-all"
-                    placeholder="Paste your resume text here..."
-                    value={resumeText}
-                    onChange={(e) => setResumeText(e.target.value)}
-                  />
+                <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-1 shadow-2xl">
+                  <div className="bg-slate-900/80 backdrop-blur-md rounded-xl p-6 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-cyan-400">
+                        <FileText className="w-4 h-4" /> Your Resume
+                      </label>
+                    </div>
 
-                  {/* PDF Upload Option */}
-                  <div className="mt-4 border-t border-slate-700/50 pt-4">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-cyan-400 mb-3">
-                      <Upload className="w-4 h-4" />
-                      Or Upload PDF Resume
-                    </label>
-                    
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileSelect}
-                      disabled={isExtracting}
-                      className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cyan-600/20 file:text-cyan-400 hover:file:bg-cyan-600/30 disabled:opacity-50"
+                    {/* Text Input */}
+                    <textarea
+                      className="w-full bg-slate-950/50 backdrop-blur-sm border border-slate-800/50 rounded-lg px-4 py-3 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 text-slate-200 placeholder-slate-500 resize-none flex-grow h-48 text-sm transition-all"
+                      placeholder="Paste your resume text here..."
+                      value={resumeText}
+                      onChange={(e) => setResumeText(e.target.value)}
                     />
 
-                    {resumeFile && (
-                      <p className="text-xs text-cyan-400 mt-2">
-                        ✓ Selected: {resumeFile.name}
-                      </p>
-                    )}
+                    {/* PDF Upload Option */}
+                    <div className="mt-4 border-t border-slate-700/50 pt-4">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-cyan-400 mb-3">
+                        <Upload className="w-4 h-4" />
+                        Or Upload PDF Resume
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileSelect}
+                        disabled={isExtracting}
+                        className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cyan-600/20 file:text-cyan-400 hover:file:bg-cyan-600/30 disabled:opacity-50"
+                      />
+
+                      {resumeFile && (
+                        <p className="text-xs text-cyan-400 mt-2">
+                          ✓ Selected: {resumeFile.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-center mt-12">
-              <div className="flex flex-col items-center w-full">
-                <button 
-                  onClick={handleAnalyze} 
-                  disabled={isExtracting}
-                  className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-8 py-4 rounded-full font-bold flex items-center gap-2 transition-all shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transform disabled:hover:scale-100 disabled:shadow-slate-700/30"
-                  title={isExtracting ? 'Analysis in progress...' : 'Click to analyze job description and resume'}
-                >
-                  {isExtracting ? 'Analyzing...' : 'Run Analysis Agent'} <ArrowRight className="w-5 h-5" />
-                </button>
-                {authError && (
-                  <div className="mt-4 text-rose-400 font-semibold text-sm text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    {authError}
-                  </div>
-                )}
+              <div className="flex justify-center mt-12">
+                <div className="flex flex-col items-center w-full">
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={isExtracting}
+                    className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-8 py-4 rounded-full font-bold flex items-center gap-2 transition-all shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transform disabled:hover:scale-100 disabled:shadow-slate-700/30"
+                    title={isExtracting ? 'Analysis in progress...' : 'Click to analyze job description and resume'}
+                  >
+                    {isExtracting ? 'Analyzing...' : 'Run Analysis Agent'} <ArrowRight className="w-5 h-5" />
+                  </button>
+                  {authError && (
+                    <div className="mt-4 text-rose-400 font-semibold text-sm text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
+                      {authError}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {appState === 'analyzing' && (
-          <div className="max-w-2xl mx-auto pt-12 text-center">
-             <div className="mb-8 relative inline-block">
-               <Cpu className="w-16 h-16 text-emerald-400 animate-pulse" />
-               <div className="absolute inset-0 bg-emerald-500/30 blur-xl animate-pulse" />
-             </div>
-             <h2 className="text-2xl font-bold mb-8">Analyzing with GROQ & Kestra...</h2>
-             <div className="space-y-4 text-left">
-              {workflowSteps.map((step, index) => (
-                <div key={step.id} className={`flex items-center gap-4 p-4 rounded-xl border ${index === workflowStep ? 'bg-slate-800 border-emerald-500/50' : 'border-transparent opacity-50'}`}>
-                  {index < workflowStep ? <CheckCircle className="text-emerald-500" /> : <Loader className={index === workflowStep ? "animate-spin text-emerald-400" : ""} />}
-                  <span>{step.name}</span>
-                </div>
-              ))}
-             </div>
-          </div>
-        )}
-
-        {appState === 'results' && analysisData && (
-          <div className="pb-20">
-            <button onClick={() => setAppState('landing')} className="mb-6 text-sm text-slate-400 hover:text-white flex items-center gap-2">
-              <RefreshCcw className="w-4 h-4" /> Start Over
-            </button>
-            
-            <div className="grid lg:grid-cols-3 gap-6 items-start">
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-emerald-400 flex gap-2 items-center"><ShieldAlert/> Analysis Status</h3>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 border border-slate-700 text-slate-200 capitalize">
-                      {analysisData.status || 'analysis_complete'}
-                    </span>
+          {appState === 'analyzing' && (
+            <div className="max-w-2xl mx-auto pt-12 text-center">
+              <div className="mb-8 relative inline-block">
+                <Cpu className="w-16 h-16 text-emerald-400 animate-pulse" />
+                <div className="absolute inset-0 bg-emerald-500/30 blur-xl animate-pulse" />
+              </div>
+              <h2 className="text-2xl font-bold mb-8">Analyzing with GROQ & Kestra...</h2>
+              <div className="space-y-4 text-left">
+                {workflowSteps.map((step, index) => (
+                  <div key={step.id} className={`flex items-center gap-4 p-4 rounded-xl border ${index === workflowStep ? 'bg-slate-800 border-emerald-500/50' : 'border-transparent opacity-50'}`}>
+                    {index < workflowStep ? <CheckCircle className="text-emerald-500" /> : <Loader className={index === workflowStep ? "animate-spin text-emerald-400" : ""} />}
+                    <span>{step.name}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
-                        <span>Fit Score</span>
-                        <span>{analysisData.fitScore ?? 0}%</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
-                        <div className="h-full bg-emerald-500" style={{width: `${analysisData.fitScore ?? 0}%`}} />
-                      </div>
+          {appState === 'results' && analysisData && (
+            <div className="pb-20">
+              <button onClick={() => setAppState('landing')} className="mb-6 text-sm text-slate-400 hover:text-white flex items-center gap-2">
+                <RefreshCcw className="w-4 h-4" /> Start Over
+              </button>
+
+              <div className="grid lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-1 space-y-6">
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-emerald-400 flex gap-2 items-center"><ShieldAlert /> Analysis Status</h3>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 border border-slate-700 text-slate-200 capitalize">
+                        {analysisData.status || 'analysis_complete'}
+                      </span>
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
-                        <span>ATS Score</span>
-                        <span>{analysisData.atsScore ?? 0}%</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
-                        <div className="h-full bg-emerald-500" style={{width: `${analysisData.atsScore ?? 0}%`}} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between text-sm font-semibold text-rose-300">
-                        <span>Toxicity Score</span>
-                        <span>{analysisData.toxicityScore ?? 0}%</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
-                        <div className="h-full bg-rose-500" style={{width: `${analysisData.toxicityScore ?? 0}%`}} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-rose-300 mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Red Flags</h4>
-                    {analysisData.redFlags && analysisData.redFlags.length > 0 ? (
-                      analysisData.redFlags.map((flag: any, i: number) => (
-                        <div key={i} className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg mb-2 text-sm text-rose-300">
-                          "{flag.text}" <br/> <span className="opacity-70 text-xs">⚠️ {flag.meaning}</span>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
+                          <span>Fit Score</span>
+                          <span>{analysisData.fitScore ?? 0}%</span>
                         </div>
-                      ))
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                          <div className="h-full bg-emerald-500" style={{ width: `${analysisData.fitScore ?? 0}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
+                          <span>ATS Score</span>
+                          <span>{analysisData.atsScore ?? 0}%</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                          <div className="h-full bg-emerald-500" style={{ width: `${analysisData.atsScore ?? 0}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-sm font-semibold text-rose-300">
+                          <span>Toxicity Score</span>
+                          <span>{analysisData.toxicityScore ?? 0}%</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                          <div className="h-full bg-rose-500" style={{ width: `${analysisData.toxicityScore ?? 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-rose-300 mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Red Flags</h4>
+                      {analysisData.redFlags && analysisData.redFlags.length > 0 ? (
+                        analysisData.redFlags.map((flag: any, i: number) => (
+                          <div key={i} className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg mb-2 text-sm text-rose-300">
+                            "{flag.text}" <br /> <span className="opacity-70 text-xs">⚠️ {flag.meaning}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400">No red flags detected.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-cyan-300 flex gap-2"><CheckCircle className="w-5 h-5" /> Missing Skills</h3>
+                      <span className="text-xs text-slate-400">{analysisData.missingSkills?.length || 0} gaps</span>
+                    </div>
+                    {analysisData.missingSkills && analysisData.missingSkills.length > 0 ? (
+                      <ul className="space-y-2">
+                        {analysisData.missingSkills.map((skill: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 text-sm bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-2">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                            <span className="text-slate-100">{skill}</span>
+                          </li>
+                        ))}
+                      </ul>
                     ) : (
-                      <p className="text-xs text-slate-400">No red flags detected.</p>
+                      <p className="text-xs text-slate-400">No missing skills detected. Great fit!</p>
                     )}
                   </div>
-                </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-cyan-300 flex gap-2"><CheckCircle className="w-5 h-5"/> Missing Skills</h3>
-                    <span className="text-xs text-slate-400">{analysisData.missingSkills?.length || 0} gaps</span>
-                  </div>
-                  {analysisData.missingSkills && analysisData.missingSkills.length > 0 ? (
-                    <ul className="space-y-2">
-                      {analysisData.missingSkills.map((skill: string, idx: number) => (
-                        <li key={idx} className="flex items-center gap-2 text-sm bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-2">
-                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                          <span className="text-slate-100">{skill}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-slate-400">No missing skills detected. Great fit!</p>
+                  {/* Extracted Text Display */}
+                  {analysisData.extractedText && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-blue-400 flex gap-2"><FileText className="w-5 h-5" /> Extracted Text</h3>
+                        {analysisData.extractedText && (
+                          <button onClick={() => copyToClipboard(analysisData.extractedText || '')} className="p-2 hover:bg-slate-800 rounded">
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="bg-slate-800 p-4 rounded-lg max-h-[300px] overflow-y-auto text-sm text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words">
+                        {analysisData.extractedText.substring(0, 1000)}
+                        {analysisData.extractedText.length > 1000 && <span className="text-slate-500">... (truncated)</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Interview Coach */}
+                  {analysisData.interviewQuestions && analysisData.interviewQuestions.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-slate-200 font-bold flex gap-2 items-center">
+                        <Sparkles className="w-5 h-5 text-emerald-400" /> Interview Coach
+                      </h3>
+                      <div className="space-y-2">
+                        {analysisData.interviewQuestions.map((q: any, i: number) => (
+                          <div
+                            key={i}
+                            className="border border-slate-700/50 rounded-xl p-3.5 hover:border-emerald-500/40 transition-colors bg-transparent"
+                          >
+                            <p className="text-slate-100 font-semibold mb-1.5 leading-relaxed">Q: {q.question || q}</p>
+                            <p className="text-slate-400 text-sm leading-relaxed">💡 {q.tip || 'Share a concise, outcome-focused answer.'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                {/* Extracted Text Display */}
-                {analysisData.extractedText && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-blue-400 flex gap-2"><FileText className="w-5 h-5"/> Extracted Text</h3>
-                      {analysisData.extractedText && (
-                        <button onClick={() => copyToClipboard(analysisData.extractedText || '')} className="p-2 hover:bg-slate-800 rounded">
-                          <Copy className="w-4 h-4"/>
-                        </button>
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 self-start">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold flex items-center gap-2"><FileText className="text-emerald-400" /> AI Summary</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => copyToClipboard(analysisData.summary || '')} className="p-2 hover:bg-slate-800 rounded" title="Copy summary">
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Structured AI Summary Sections */}
+                    <div className="bg-slate-800/80 border border-slate-700 rounded-lg p-4 text-sm text-slate-200 leading-relaxed">
+                      {(() => {
+                        if (!analysisData.summary || !analysisData.summary.trim()) {
+                          return 'Summary not available yet.';
+                        }
+                        // Section titles to split on
+                        const sectionTitles = [
+                          'Executive Fit Overview',
+                          'Experience Deep Dive',
+                          'Skills Gap Analysis',
+                          'Formatting & Presentation',
+                          'Strategic Advice'
+                        ];
+                        // Split summary into sections
+                        // Improved section splitting: match heading and following text
+                        const regex = new RegExp(`(${sectionTitles.join('|')}):`, 'g');
+                        const split = analysisData.summary.split(regex);
+                        // split: [before, heading1, text1, heading2, text2, ...]
+                        const sections = [];
+                        for (let i = 1; i < split.length; i += 2) {
+                          const title = split[i];
+                          // The content is either split[i+1] or, if missing, an empty string
+                          const content = (split[i + 1] || '').trim();
+                          sections.push({ title, content });
+                        }
+                        if (!sections.length) {
+                          return analysisData.summary;
+                        }
+                        return (
+                          <div className="space-y-4">
+                            {sections.map(({ title, content }) => (
+                              <div key={title}>
+                                <h4 className="font-semibold text-emerald-300 mb-1">{title}</h4>
+                                <p className="text-slate-200 text-sm whitespace-pre-line">{content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-slate-200 mb-2 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Targeted Skills to Emphasize</h4>
+                      {analysisData.missingSkills && analysisData.missingSkills.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {analysisData.missingSkills.map((skill: string, idx: number) => (
+                            <span key={idx} className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-100">{skill}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-400">We did not detect missing skills. You look well-aligned.</p>
                       )}
                     </div>
-                    <div className="bg-slate-800 p-4 rounded-lg max-h-[300px] overflow-y-auto text-sm text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words">
-                      {analysisData.extractedText.substring(0, 1000)}
-                      {analysisData.extractedText.length > 1000 && <span className="text-slate-500">... (truncated)</span>}
-                    </div>
                   </div>
-                )}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
 
-                {/* Interview Coach */}
-                {analysisData.interviewQuestions && analysisData.interviewQuestions.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-slate-200 font-bold flex gap-2 items-center">
-                      <Sparkles className="w-5 h-5 text-emerald-400"/> Interview Coach
-                    </h3>
-                    <div className="space-y-2">
-                      {analysisData.interviewQuestions.map((q: any, i: number) => (
-                        <div
-                          key={i}
-                          className="border border-slate-700/50 rounded-xl p-3.5 hover:border-emerald-500/40 transition-colors bg-transparent"
-                        >
-                          <p className="text-slate-100 font-semibold mb-1.5 leading-relaxed">Q: {q.question || q}</p>
-                          <p className="text-slate-400 text-sm leading-relaxed">💡 {q.tip || 'Share a concise, outcome-focused answer.'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {/* Login Modal */}
+        {isLoginModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 pointer-events-auto">
+            <div className="bg-slate-900/90 backdrop-blur-2xl border border-slate-700/50 rounded-2xl w-full max-w-md p-6 relative shadow-2xl shadow-emerald-500/20 pointer-events-auto">
+              <button
+                onClick={() => setIsLoginModalOpen(false)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center mb-8">
+                <div className="w-12 h-12 bg-emerald-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-4 text-emerald-400 border border-emerald-500/30">
+                  <User className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
+                </h3>
+                <p className="text-sm text-slate-400 mt-2">
+                  {authMode === 'signin' ? 'Sign in to access your resumes.' : 'Get started with Resume Chameleon.'}
+                </p>
               </div>
 
-              <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 self-start">
-                 <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold flex items-center gap-2"><FileText className="text-emerald-400"/> AI Summary</h3>
-                   <div className="flex gap-2">
-                     <button onClick={() => copyToClipboard(analysisData.summary || '')} className="p-2 hover:bg-slate-800 rounded" title="Copy summary">
-                       <Copy className="w-4 h-4"/>
-                     </button>
-                   </div>
-                 </div>
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2">
+                    <Mail className="w-3 h-3" /> Email Address
+                  </label>
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="you@company.com"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2">
+                    <Lock className="w-3 h-3" /> Password
+                  </label>
+                  <input
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="••••••••"
+                  />
+                </div>
 
-                 <div className="space-y-6">
-                   <div className="bg-slate-800/80 border border-slate-700 rounded-lg p-4 text-sm text-slate-200 leading-relaxed">
-                     {analysisData.summary && analysisData.summary.trim() 
-                       ? analysisData.summary 
-                       : 'Summary not available yet.'}
-                   </div>
+                {authError && (
+                  <div className="text-rose-400 text-xs text-center bg-rose-500/10 p-2 rounded">
+                    {authError}
+                  </div>
+                )}
 
-                   <div>
-                     <h4 className="font-semibold text-slate-200 mb-2 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400"/> Targeted Skills to Emphasize</h4>
-                     {analysisData.missingSkills && analysisData.missingSkills.length > 0 ? (
-                       <div className="flex flex-wrap gap-2">
-                         {analysisData.missingSkills.map((skill: string, idx: number) => (
-                           <span key={idx} className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-100">{skill}</span>
-                         ))}
-                       </div>
-                     ) : (
-                       <p className="text-sm text-slate-400">We did not detect missing skills. You look well-aligned.</p>
-                     )}
-                   </div>
-                 </div>
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {authLoading ? <Loader className="w-4 h-4 animate-spin" /> : (authMode === 'signin' ? 'Sign In' : 'Sign Up')}
+                </button>
+              </form>
+
+              <div className="text-center mt-6">
+                <button
+                  onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+                  className="text-xs text-slate-500 hover:text-emerald-400 transition-colors underline"
+                >
+                  {authMode === 'signin' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                </button>
               </div>
             </div>
           </div>
         )}
-      </main>
-
-      {/* Login Modal */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 pointer-events-auto">
-          <div className="bg-slate-900/90 backdrop-blur-2xl border border-slate-700/50 rounded-2xl w-full max-w-md p-6 relative shadow-2xl shadow-emerald-500/20 pointer-events-auto">
-            <button 
-              onClick={() => setIsLoginModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center mb-8">
-              <div className="w-12 h-12 bg-emerald-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-4 text-emerald-400 border border-emerald-500/30">
-                <User className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">
-                {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
-              </h3>
-              <p className="text-sm text-slate-400 mt-2">
-                {authMode === 'signin' ? 'Sign in to access your resumes.' : 'Get started with Resume Chameleon.'}
-              </p>
-            </div>
-
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              <div>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2">
-                  <Mail className="w-3 h-3"/> Email Address
-                </label>
-                <input 
-                  name="email"
-                  type="email" 
-                  required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  placeholder="you@company.com"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2">
-                  <Lock className="w-3 h-3"/> Password
-                </label>
-                <input 
-                  name="password"
-                  type="password" 
-                  required
-                  minLength={6}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  placeholder="••••••••"
-                />
-              </div>
-              
-              {authError && (
-                <div className="text-rose-400 text-xs text-center bg-rose-500/10 p-2 rounded">
-                  {authError}
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {authLoading ? <Loader className="w-4 h-4 animate-spin"/> : (authMode === 'signin' ? 'Sign In' : 'Sign Up')}
-              </button>
-            </form>
-            
-            <div className="text-center mt-6">
-              <button 
-                onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
-                className="text-xs text-slate-500 hover:text-emerald-400 transition-colors underline"
-              >
-                {authMode === 'signin' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   );
