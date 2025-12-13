@@ -110,6 +110,20 @@ tasks:
     body: |
       {% set raw_string = json(outputs.analyze_resume.body).choices[0].message.content %}
       {% set data = json(raw_string) %}
+
+      {# --- 🤖 AGENT DECISION LOGIC START --- #}
+      {% set decision = "MANUAL_REVIEW" %}
+      
+      {# RULE 1: High Fit & Zero Red Flags = Interview #}
+      {% if data.fit_score >= 80 and data.red_flags | length == 0 %}
+          {% set decision = "RECOMMENDED_INTERVIEW" %}
+      
+      {# RULE 2: Low Fit OR Too Many Red Flags = Reject #}
+      {% elseif data.fit_score < 50 or data.red_flags | length >= 3 %}
+          {% set decision = "AUTO_REJECTED" %}
+      {% endif %}
+      {# --- 🤖 AGENT DECISION LOGIC END --- #}
+
       {
         "status": "completed",
         "fit_score": {{ data.fit_score }},
@@ -119,9 +133,9 @@ tasks:
         "missing_skills": {{ data.missing_skills | json }},
         "interview_questions": {{ data.interview_questions | json }},
         "ai_response": {{ raw_string }}
+        "recruiter_action": "{{decision}}"
       }
 
-      
 triggers:
   - id: my_webhook
     type: io.kestra.plugin.core.trigger.Webhook
