@@ -1,105 +1,121 @@
 <div align="center">
 
-# Resume Chameleon
+# Resume Chameleon 🦎
 
-AI-powered resume analysis that highlights toxic job descriptions, evaluates fit, and suggests improvements. One button handles PDF upload, extraction, database save, and Groq analysis.
+**[Live Demo](https://resume-chameleon-swart.vercel.app/)**
+
+**AI-powered resume analysis that predicts recruiter behavior, calculates ATS scores, and generates tailored interview questions.**
+
+</div>
+
+## 📖 Overview
+Resume Chameleon is an intelligent career tool designed to decode the hiring process. Beyond simple keyword matching, it uses deep AI analysis to simulate a recruiter's perspective, calculating exactly how an Applicant Tracking System (ATS) views your resume and predicting whether a human recruiter would "Shortlist" or "Reject" you.
+
+## 🚀 Key Features
+- **ATS Compatibility Score:** Calculates a precise percentage score indicating how well your resume parses against the specific Job Description (JD).
+- **Recruiter Action Prediction:** Simulates a human recruiter's decision (e.g., *Shortlist*, *Hold*, *Reject*) with detailed reasoning.
+- **Tailored Interview Prep:** Generates 5 specific technical and behavioral interview questions based on the gaps between your resume and the JD.
+- **Toxicity Detector:** Flags manipulative language or unrealistic expectations in job descriptions.
+- **Unified Analysis Agent:** One button handles PDF upload, text extraction, database storage, and multi-step AI analysis.
+- **Hybrid Automation:** Leverages **Kestra** for heavy-lifting workflow orchestration and **Groq (Llama 3.3)** for lightning-fast inference.
+
+## 🛠 Tech Stack
+- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes (Serverless)
+- **Database & Auth:** Supabase (PostgreSQL, Auth, Storage, RLS)
+- **Workflow Orchestration:** Kestra (Docker-based)
+- **AI Model:** Groq (Llama 3.3)
+- **Connectivity:** Ngrok (Secure tunneling for local Kestra instance)
+
+---
+
+## 🏗 Architecture & Deployment (Hackathon Hybrid Setup)
+
+To ensure zero-cost reliability and high performance during the hackathon, this project uses a **Hybrid Architecture**:
+
+1.  **Frontend (Cloud):** The Next.js UI is deployed on **Vercel** for global accessibility.
+2.  **Automation Engine (Local/Edge):** Kestra runs on a local high-performance Docker container to avoid cold starts and RAM limits of free cloud tiers.
+3.  **Connectivity:** **Ngrok** is used to securely tunnel the local Kestra instance, allowing the Vercel cloud app to trigger workflows on the local machine.
+
+### Quick Start (Local Development)
+
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+2.  **Configure Environment:**
+    Create a `.env.local` file:
+    ```bash
+    NEXT_PUBLIC_SUPABASE_URL=[https://your-project.supabase.co](https://your-project.supabase.co)
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+    SUPABASE_SERVICE_ROLE_KEY=your-service-key
+    AI_PROVIDER=groq
+    GROQ_API_KEY=gsk_...
+    
+    # Kestra Configuration
+    KESTRA_API_URL=[https://your-ngrok-url.ngrok-free.app](https://your-ngrok-url.ngrok-free.app)
+    KESTRA_API_TOKEN=your-token
+    ```
+
+3.  **Database Setup:**
+    Run the scripts in `SUPABASE_TABLES.sql` in your Supabase SQL Editor to create tables and RLS policies.
+
+4.  **Start Services:**
+    - Start the Next.js app: `npm run dev`
+    - Ensure Kestra is running via Docker.
+    - Start Ngrok: `ngrok http 8080` (or your Kestra port).
+
+---
+
+## 📡 API Reference
+
+**Endpoint:** `POST /api/analyze`
+
+**Headers:**
+- `Content-Type: application/json`
+- `x-user-id`: Supabase User ID
+- `x-user-email`: Supabase User Email
+
+**Request Body (PDF):**
+```json
+{
+    "jobDescription": "Senior Full Stack Engineer...",
+    "resumeFile": "<base64_encoded_pdf_string>",
+    "resumeFileName": "my_resume.pdf"
+}
+
+Response: Returns analysisId, atsScore, recruiterAction, interviewQuestions, toxicityScore, fitScore, and summary.
+
+📂 Project Structure
+app/page.tsx – Main UI with the unified "Run Agent" flow.
+
+pages/api/analyze.ts – The brain of the operation: handles uploads, DB saves, and triggers Kestra.
+
+pages/api/analyses.ts – Fetches past analysis history.
+
+flows/analyze_flow.yaml – The Kestra workflow definition (Extraction + AI).
+
+SUPABASE_TABLES.sql – Database schema and security policies.
+
+⚠️ Troubleshooting
+1. Analysis hangs (Loading spinner doesn't stop):
+
+Ngrok Issue: If using the free tier of Ngrok, the URL changes every time you restart the terminal.
+
+Fix: Copy the new Ngrok URL (e.g., https://abcd-123.ngrok-free.app) and update the KESTRA_API_URL environment variable in your Vercel project settings, then redeploy (or just save if using Vercel Preview).
+
+2. Database Permission Errors:
+
+Verify that your Supabase RLS policies are set to allow INSERT and SELECT for authenticated users.
+
+3. PDF Extraction Fails:
+
+Check the Kestra execution logs. Ensure the PDF isn't password protected or corrupted.
+
+<div align="center">
+
+Built with ❤️ for the 2025 Hackathon.
 
 </div>
 
-## What It Does
-- Analyze a job description against your resume (text or PDF)
-- Detect toxic language and flag red flags with explanations
-- Score role fit, rewrite your summary, and list missing skills
-- Persist every analysis to Supabase with RLS
-- Single unified "Run Analysis Agent" button (no manual extraction step)
-- Kestra extracts PDFs and invokes Groq; all outputs are stored in Supabase
-
-## Stack
-- Next.js 16, React 19, TypeScript, Tailwind
-- API Routes for backend logic
-- Supabase PostgreSQL + RLS for data and auth; Supabase Storage for PDFs
-- Kestra workflow for PDF text extraction and Groq invocation
-- Groq Llama 3.3 via Groq API for analysis (default provider)
-
-## Quick Start
-1. Install deps: `npm install`
-2. Create `.env.local` with:
-	 ```bash
-	 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-	NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
-	SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...    # service role, not anon
-	AI_PROVIDER=groq
-	GROQ_API_KEY=gsk_...
-	 KESTRA_API_URL=http://localhost:8080
-	 KESTRA_API_TOKEN=your-token
-	 ```
-3. Create the database table and RLS policies: run `SUPABASE_TABLES.sql` (or SQL in `SETUP_CONSOLIDATED.md`) in Supabase SQL Editor.
-4. Start services:
-	 ```bash
-	 npm run dev          # app at http://localhost:3000
-	 # in another shell if using PDF: start Kestra (docker-compose or your setup)
-	 ```
-5. Log in via Supabase Auth in the app, paste a job description, add resume text or upload a PDF, then click **Run Analysis Agent**.
-
-## Usage
-- **Input**: Job description (required) + resume text or PDF (one required; text wins if both provided)
-- **Action**: Click **Run Analysis Agent**
-- **Output**: Toxicity score, red flags with explanations, fit score, rewritten summary, missing skills; result saved to `analyses` table with file path when PDF provided (analysis performed via Groq)
-- **Timing**: ~8s for text, ~15s for PDF (includes extraction)
-
-## API
-- **Endpoint**: `POST /api/analyze`
-- **Headers**: `Content-Type: application/json`, `x-user-id` (Supabase user id), `x-user-email`
-- **Body (text)**:
-	```json
-	{
-		"jobDescription": "Senior Full Stack Engineer...",
-		"resumeText": "10 years of experience..."
-	}
-	```
-- **Body (PDF)**:
-	```json
-	{
-		"jobDescription": "Senior Full Stack Engineer...",
-		"resumeFile": "<base64 pdf>",
-		"resumeFileName": "resume.pdf"
-	}
-	```
-- Returns: `analysisId`, `analysisData` (toxicityScore, redFlags, fitScore, summary, missingSkills), and `success: true`
-- Full reference: `API_DOCUMENTATION.md` (AI provider configurable via `AI_PROVIDER`, default `groq`)
-
-## Project Map
-- `app/page.tsx` – main UI with unified flow
-- `pages/api/analyze.ts` – consolidated analysis endpoint (upload, extract, save, analyze)
-- `pages/api/analyses.ts` – supporting API for analyses data
-- `SUPABASE_TABLES.sql` – database schema and RLS policies
-- `CONSOLIDATED_FLOW.md` – architecture and data flow
-- `SETUP_CONSOLIDATED.md` – 5-minute setup checklist
-- `DEPLOYMENT_CHECKLIST.md` – production steps
-
-## Scripts
-- `npm run dev` – start dev server
-- `npm run build` – production build
-- `npm run start` – serve built app
-- `npm run lint` – lint
-
-## Troubleshooting
-- Must be authenticated: login before running analysis
-- Ensure all env vars are present; service role key must be the service key from Supabase
-- PDF extraction hangs: verify Kestra is running and reachable at `KESTRA_API_URL`
-- Database errors: confirm `analyses` table and RLS policies are applied
-- API errors: check `AI_PROVIDER`, Groq API key, and Supabase connectivity
-
-## Deployment
-1. `npm run build` to verify production build
-2. Set env vars in your hosting platform (include service role key)
-3. Deploy (Vercel or your choice) and run through `DEPLOYMENT_CHECKLIST.md`
-
-## Docs
-- Setup: `SETUP_CONSOLIDATED.md`
-- Flow: `CONSOLIDATED_FLOW.md`
-- API: `API_DOCUMENTATION.md`
-- Deployment: `DEPLOYMENT_CHECKLIST.md`
-- Database: `SUPABASE_TABLES.sql`
-
-</div>
