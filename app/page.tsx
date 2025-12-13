@@ -281,6 +281,7 @@ I built several web apps and I am good at coding.`;
             status: analysis.status,
             toxicity: analysis.toxicityScore,
             ats_score: analysis.atsScore,
+            recruiterAction: analysis.recruiterAction,
             fit: analysis.fitScore,
             redFlags: analysis.redFlags?.length || 0,
             skills: analysis.missingSkills?.length || 0
@@ -322,6 +323,7 @@ I built several web apps and I am good at coding.`;
               redFlags: safeRedFlags,
               fitScore: Number(analysis.fitScore) || 0,
               atsScore: Number(analysis.atsScore) || 0,
+              recruiterAction: String(analysis.recruiterAction || ''),
               summary: String(analysis.summary || ''),
               missingSkills: safeSkills,
               interviewQuestions: safeQuestions,
@@ -762,6 +764,26 @@ I built several web apps and I am good at coding.`;
                       </span>
                     </div>
 
+                    {/* Recruiter Action Badge - prominent and styled */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-semibold text-emerald-300">Recruiter Action</span>
+                      {analysisData.recruiterAction ? (
+                        <span
+                          className={
+                            `px-3 py-1 rounded-full text-xs font-bold border ` +
+                            (analysisData.recruiterAction === 'AUTO_REJECTED'
+                              ? 'bg-rose-500/10 border-rose-500/40 text-rose-400'
+                              : analysisData.recruiterAction === 'SHORTLISTED'
+                              ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                              : 'bg-slate-800 border-slate-700 text-slate-200')
+                          }
+                        >
+                          {analysisData.recruiterAction.replace(/_/g, ' ')}
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 border border-slate-700 text-slate-200">N/A</span>
+                      )}
+                    </div>
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center justify-between text-sm font-semibold text-emerald-300">
@@ -911,7 +933,7 @@ I built several web apps and I am good at coding.`;
                             {sections.map(({ title, content }) => (
                               <div key={title}>
                                 <h4 className="font-semibold text-emerald-300 mb-1">{title}</h4>
-                                <p className="text-slate-200 text-sm whitespace-pre-line">{content}</p>
+                                <p className="text-slate-200 text-sm whitespace-pre-line">{content.replace(/\*\*/g, '')}</p>
                               </div>
                             ))}
                           </div>
