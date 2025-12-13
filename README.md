@@ -84,6 +84,7 @@ To ensure zero-cost reliability and high performance during the hackathon, this 
     "resumeFile": "<base64_encoded_pdf_string>",
     "resumeFileName": "my_resume.pdf"
 }
+```
 
 <br />
 
