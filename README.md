@@ -85,7 +85,7 @@ To ensure zero-cost reliability and high performance during the hackathon, this 
     "resumeFileName": "my_resume.pdf"
 }
 
-<br/>
+<br />
 
 <div align="center">
 
