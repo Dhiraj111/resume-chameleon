@@ -605,10 +605,7 @@ I built several web apps and I am good at coding.`;
               </div>
               <span className="font-bold text-xl tracking-tight">Resume<span className="text-emerald-400">Chameleon</span></span>
             </div>
-            <div className="hidden md:flex gap-6 text-sm font-medium text-slate-400">
-              <span className="hover:text-emerald-400 cursor-pointer transition-colors">How it Works</span>
-              <span className="hover:text-emerald-400 cursor-pointer transition-colors">Kestra Agents</span>
-            </div>
+    
 
             {/* Auth Button Logic */}
             {user ? (
