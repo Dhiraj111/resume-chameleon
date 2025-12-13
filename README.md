@@ -85,34 +85,6 @@ To ensure zero-cost reliability and high performance during the hackathon, this 
     "resumeFileName": "my_resume.pdf"
 }
 
-Response: Returns analysisId, atsScore, recruiterAction, interviewQuestions, toxicityScore, fitScore, and summary.
-
-📂 Project Structure
-app/page.tsx – Main UI with the unified "Run Agent" flow.
-
-pages/api/analyze.ts – The brain of the operation: handles uploads, DB saves, and triggers Kestra.
-
-pages/api/analyses.ts – Fetches past analysis history.
-
-flows/analyze_flow.yaml – The Kestra workflow definition (Extraction + AI).
-
-SUPABASE_TABLES.sql – Database schema and security policies.
-
-⚠️ Troubleshooting
-1. Analysis hangs (Loading spinner doesn't stop):
-
-Ngrok Issue: If using the free tier of Ngrok, the URL changes every time you restart the terminal.
-
-Fix: Copy the new Ngrok URL (e.g., https://abcd-123.ngrok-free.app) and update the KESTRA_API_URL environment variable in your Vercel project settings, then redeploy (or just save if using Vercel Preview).
-
-2. Database Permission Errors:
-
-Verify that your Supabase RLS policies are set to allow INSERT and SELECT for authenticated users.
-
-3. PDF Extraction Fails:
-
-Check the Kestra execution logs. Ensure the PDF isn't password protected or corrupted.
-
 <div align="center">
 
 Built with ❤️ for the 2025 Hackathon.
