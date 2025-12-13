@@ -12,6 +12,7 @@ export type Analysis = {
   redFlags?: Array<{ text: string; meaning?: string }>
   fitScore?: number
   atsScore?: number
+  recruiterAction?: string
   summary?: string
   missingSkills?: string[]
   interviewQuestions?: Array<{ question: string; tip?: string }>
@@ -76,11 +77,6 @@ export function mapAnalysis(row: any): Analysis {
     return typeof val === 'number' ? val : parseInt(val, 10) || 0;
   })();
 
-  const fitScore = (() => {
-    const val = row.fit_score ?? row.fitScore ?? 0;
-    return typeof val === 'number' ? val : parseInt(val, 10) || 0;
-  })();
-
   // Safe string extractor - handles objects, arrays, null, undefined
   const safeString = (val: any): string => {
     if (typeof val === 'string') return val;
@@ -95,6 +91,16 @@ export function mapAnalysis(row: any): Analysis {
     }
     return '';
   };
+
+  const recruiterAction = (() => {
+    const val = row.recruiter_action ?? row.recruiterAction ?? "";
+    return typeof val === 'string' ? val : safeString(val);
+  })();
+
+  const fitScore = (() => {
+    const val = row.fit_score ?? row.fitScore ?? 0;
+    return typeof val === 'number' ? val : parseInt(val, 10) || 0;
+  })();
 
   // Extract summary and aiResponse from ai_response JSONB
   // ai_response is a JSONB object with { summary: "...", interview_questions: [...], ... } structure
@@ -118,6 +124,7 @@ export function mapAnalysis(row: any): Analysis {
     redFlags,
     fitScore,
     atsScore,
+    recruiterAction,
     summary,
     missingSkills,
     interviewQuestions,
