@@ -85,6 +85,8 @@ To ensure zero-cost reliability and high performance during the hackathon, this 
     "resumeFileName": "my_resume.pdf"
 }
 
+<br/>
+
 <div align="center">
 
 Built with ❤️ for the 2025 Hackathon.
