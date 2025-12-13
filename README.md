@@ -85,6 +85,12 @@ To ensure zero-cost reliability and high performance during the hackathon, this 
     "resumeFileName": "my_resume.pdf"
 }
 ```
+## 📂 Project Structure
+- app/page.tsx – Main UI with the unified "Run Agent" flow.
+- pages/api/analyze.ts – The brain of the operation: handles uploads, DB saves, and triggers Kestra.
+- pages/api/analyses.ts – Fetches past analysis history.
+- flows/analyze_flow.yaml – The Kestra workflow definition (Extraction + AI).
+- SUPABASE_TABLES.sql – Database schema and security policies.
 
 <br />
 
