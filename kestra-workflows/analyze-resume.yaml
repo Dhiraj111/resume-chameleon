@@ -95,34 +95,26 @@ tasks:
   # ---------------------------------------------------------
   - id: update_supabase
     type: io.kestra.plugin.core.http.Request
-    # 👇 Updates the specific record ID that triggered the webhook
     uri: "https://{{ secret('PROJECT_KEY') }}.supabase.co/rest/v1/analyses?id=eq.{{ trigger.body.record.id }}"
     method: PATCH
     contentType: application/json
     headers:
-      # 👇 CRITICAL: Use your Service Role Key (starts with 'eyJ...')
       apikey: "{{ secret('SERVICE_ROLE_KEY') }}"
       Authorization: "Bearer {{ secret('SERVICE_ROLE_KEY') }}"
       Content-Type: "application/json"
       Prefer: "return=minimal"
     
-    # 👇 LOGIC: Parse the text string into an object, then map to columns
     body: |
       {% set raw_string = json(outputs.analyze_resume.body).choices[0].message.content %}
       {% set data = json(raw_string) %}
 
-      {# --- 🤖 AGENT DECISION LOGIC START --- #}
+      {# --- AGENT DECISION LOGIC --- #}
       {% set decision = "MANUAL_REVIEW" %}
-      
-      {# RULE 1: High Fit & Zero Red Flags = Interview #}
       {% if data.fit_score >= 80 and data.red_flags | length == 0 %}
           {% set decision = "RECOMMENDED_INTERVIEW" %}
-      
-      {# RULE 2: Low Fit OR Too Many Red Flags = Reject #}
       {% elseif data.fit_score < 50 or data.red_flags | length >= 3 %}
           {% set decision = "AUTO_REJECTED" %}
       {% endif %}
-      {# --- 🤖 AGENT DECISION LOGIC END --- #}
 
       {
         "status": "completed",
@@ -132,7 +124,7 @@ tasks:
         "red_flags": {{ data.red_flags | json }},
         "missing_skills": {{ data.missing_skills | json }},
         "interview_questions": {{ data.interview_questions | json }},
-        "ai_response": {{ raw_string }}
+        "ai_response": {{ raw_string }}, 
         "recruiter_action": "{{decision}}"
       }
 
