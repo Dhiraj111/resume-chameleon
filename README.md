@@ -2,7 +2,7 @@
 
 # Resume Chameleon 🦎
 
-**[Live Demo](https://resume-chameleon-swart.vercel.app/)**
+<a href="https://resume-chameleon-swart.vercel.app/" target="_blank"><strong>[Live Demo]</strong></a>
 
 **AI-powered resume analysis that predicts recruiter behavior, calculates ATS scores, and generates tailored interview questions.**
 
